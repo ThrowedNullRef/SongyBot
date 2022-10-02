@@ -14,12 +14,10 @@ public sealed class PlaySongCommand : SongyCommand
 {
     public const string LinkOptionName = "link";
 
-    private readonly DiscordSocketClient _client;
     private readonly GuildPlayersPool _playersPool;
 
-    public PlaySongCommand(ILogger logger, DiscordSocketClient client, GuildPlayersPool playersPool) : base("play", "plays a song", logger)
+    public PlaySongCommand(ILogger logger, GuildPlayersPool playersPool) : base("play", "plays a song", logger)
     {
-        _client = client;
         _playersPool = playersPool;
     }
 
@@ -47,7 +45,7 @@ public sealed class PlaySongCommand : SongyCommand
 
         var link = (string)socketCommand.Data.Options.First(o => o.Name == LinkOptionName).Value;
 
-        var song = await SongFactory.CreateSongAsync(link);
+        var song = await SongFactory.CreateSongAsync(link, 0);
         var playlist = new Playlist(null, "SINGLE_SONG", new List<ISong> { song });
 
         var player = _playersPool.GetOrCreateGuildPlayer(guildUser.Guild);

@@ -40,7 +40,8 @@ public static class Program
                 .AddTransient<SongyCommand, NewPlaylistCommand>()
                 .AddTransient<SongyCommand, RemoveSongFromPlaylistCommand>()
                 .AddTransient<SongyCommand, GetPlaylistDetailsCommand>()
-                .AddTransient<SongyCommand, ContinuePlaylistCommand>();
+                .AddTransient<SongyCommand, PausePlaylistCommand>()
+                .AddTransient<SongyCommand, ResumePlaylistCommand>();
 
         var store = new DocumentStore
         {

@@ -4,8 +4,8 @@ namespace SongyBot.Songs;
 
 public static class SongFactory
 {
-    public static async Task<ISong> CreateSongAsync(string input)
+    public static async Task<ISong> CreateSongAsync(string input, int position)
     {
-        return await YoutubeSong.CreateNewAsync(input);
+        return await YoutubeSong.CreateNewAsync(input, position);
     }
 }

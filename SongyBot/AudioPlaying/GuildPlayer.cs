@@ -15,11 +15,9 @@ public sealed class GuildPlayer : IAsyncDisposable
     private readonly ILogger _logger;
     private IAudioClient? _audioClient;
 
-    private GuildPlayerSongTransmitter? _songTransmitter;
+    private SongTransmitter? _songTransmitter;
 
     private SocketVoiceChannel? _channel;
-
-    private PlaylistSession? _playlistSession;
 
     public GuildPlayer(SocketGuild guild, ILogger logger)
     {
@@ -27,7 +25,7 @@ public sealed class GuildPlayer : IAsyncDisposable
         _logger = logger;
     }
 
-    public Playlist? Playlist => _playlistSession?.Playlist;
+    public PlaylistSession? PlaylistSession { get; private set; }
 
     public async ValueTask DisposeAsync()
     {
@@ -44,15 +42,16 @@ public sealed class GuildPlayer : IAsyncDisposable
     {
         await ClearSongTransmissionAsync();
 
-        _playlistSession = new PlaylistSession(playlist);
-        _playlistSession.OnSongChanged += async song => await PlayListOnSongChanged(song);
+        PlaylistSession = new PlaylistSession(playlist);
+        PlaylistSession.OnSongChanged += OnSongChanged;
+        PlaylistSession.OnPausedChanged += OnPausedChanged;
     }
 
     public async Task PlayOnChannelAsync(ulong voiceChannelId)
     {
         await ClearSongTransmissionAsync();
 
-        if (_playlistSession is null)
+        if (PlaylistSession is null)
             throw new InvalidOperationException("no playlist");
 
         var targetChannel = _guild.VoiceChannels.First(vc => vc.Id == voiceChannelId);
@@ -62,22 +61,36 @@ public sealed class GuildPlayer : IAsyncDisposable
             _audioClient = await targetChannel.ConnectAsync();
         }
 
-        _playlistSession.Next();
+        PlaylistSession.Next();
     }
 
-    private async Task PlayListOnSongChanged(ISong song)
+    private void OnPausedChanged(bool isPaused)
+    {
+        if (_songTransmitter is null)
+            return;
+
+        _songTransmitter.IsPaused = isPaused;
+    }
+
+    private async void OnSongChanged(ISong song) =>
+        await PlaySongAsync(song);
+
+    private async Task PlaySongAsync(ISong song)
     {
         try
         {
-            var songStream = await song.GetStreamAsync();
-            var audioOutStream = _audioClient!.CreatePCMStream(AudioApplication.Mixed);
-            _songTransmitter = new GuildPlayerSongTransmitter(audioOutStream, songStream);
+            _songTransmitter = new SongTransmitter(
+                () => _audioClient!.CreatePCMStream(AudioApplication.Mixed),
+                song.GetStreamAsync);
+
             await _songTransmitter.TransmitAsync();
-            _playlistSession?.Next();
+            await ClearSongTransmissionAsync();
+            PlaylistSession?.Next();
         }
         catch (Exception e)
         {
             _logger.Error(e, "Error while streaming song");
+            await ClearSongTransmissionAsync();
         }
     }
 

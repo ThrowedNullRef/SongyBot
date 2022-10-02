@@ -40,7 +40,7 @@ public sealed class AddSongToPlaylistCommand : SongyCommand
             return;
         }
 
-        if (!_guildPlayersPool.TryGetGuildPlayer(guildUser.Guild.Id, out var player) || player.Playlist is null)
+        if (!_guildPlayersPool.TryGetGuildPlayer(guildUser.Guild.Id, out var player) || player.PlaylistSession is null)
         {
             await socketCommand.RespondAsync("There is no active playlist");
             return;
@@ -48,11 +48,15 @@ public sealed class AddSongToPlaylistCommand : SongyCommand
 
         var link = (string) socketCommand.Data.Options.First(o => o.Name == LinkOptionName).Value;
 
-        var song = await SongFactory.CreateSongAsync(link);
-        player.Playlist.AddSong(song);
+        var nextSongPos = player.PlaylistSession.Playlist.Songs.Count > 0 
+            ? player.PlaylistSession.Playlist.Songs.Max(s => s.Position) + 1 
+            : 0;
+
+        var song = await SongFactory.CreateSongAsync(link, nextSongPos);
+        player.PlaylistSession.Playlist.AddSong(song);
 
         using var session = _createSession();
-        await session.StoreAsync(player.Playlist);
+        await session.StoreAsync(player.PlaylistSession.Playlist);
         await session.SaveChangesAsync();
     }
 }

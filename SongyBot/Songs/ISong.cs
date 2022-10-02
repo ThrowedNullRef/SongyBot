@@ -7,5 +7,7 @@ public interface ISong
 {
     Task<Stream> GetStreamAsync();
 
-    string SongName { get; }
+    string SongName { get; set; }
+
+    int Position { get; set; }
 }

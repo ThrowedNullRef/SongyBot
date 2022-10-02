@@ -8,15 +8,18 @@ namespace SongyBot.Songs;
 
 public sealed class YoutubeSong : ISong
 {
-    public YoutubeSong(string url, string songName)
+    public YoutubeSong(string url, string songName, int position)
     {
         Url = url;
         SongName = songName;
+        Position = position;
     }
 
     public string Url { get; set; }
 
     public string SongName { get; set; }
+
+    public int Position { get; set; }
 
     public async Task<Stream> GetStreamAsync()
     {
@@ -43,9 +46,9 @@ public sealed class YoutubeSong : ISong
             RedirectStandardOutput = true,
         })!;
 
-    public static async Task<YoutubeSong> CreateNewAsync(string url)
+    public static async Task<YoutubeSong> CreateNewAsync(string url, int position)
     {
         var video = await YouTube.Default.GetVideoAsync(url);
-        return new YoutubeSong(url, Path.GetFileNameWithoutExtension(video.FullName));
+        return new YoutubeSong(url, Path.GetFileNameWithoutExtension(video.FullName), position);
     }
 }

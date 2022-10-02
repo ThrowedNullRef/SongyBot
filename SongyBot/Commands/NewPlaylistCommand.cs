@@ -18,7 +18,7 @@ public sealed class NewPlaylistCommand : SongyCommand
     private readonly Func<IAsyncDocumentSession> _createSession;
     private readonly GuildPlayersPool _guildPlayersPool;
 
-    public NewPlaylistCommand(ILogger logger, Func<IAsyncDocumentSession> createSession, GuildPlayersPool guildPlayersPool) : base("new-playlist", "creates a new playlist and selects it", logger)
+    public NewPlaylistCommand(ILogger logger, Func<IAsyncDocumentSession> createSession, GuildPlayersPool guildPlayersPool) : base("create-playlist", "creates a new playlist and selects it", logger)
     {
         _createSession = createSession;
         _guildPlayersPool = guildPlayersPool;
