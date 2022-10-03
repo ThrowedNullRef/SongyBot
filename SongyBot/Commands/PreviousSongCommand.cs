@@ -1,16 +1,15 @@
-﻿using System.Linq;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using Discord.WebSocket;
 using Serilog;
 using SongyBot.AudioPlaying;
 
 namespace SongyBot.Commands;
 
-public sealed class GetPlaylistDetailsCommand : SongyCommand
+public sealed class PreviousSongCommand : SongyCommand
 {
     private readonly GuildPlayersPool _guildPlayersPool;
 
-    public GetPlaylistDetailsCommand(ILogger logger, GuildPlayersPool guildPlayersPool) : base("playlist-details", "get details to the currently active playlist", logger)
+    public PreviousSongCommand(ILogger logger, GuildPlayersPool guildPlayersPool) : base("previous", "plays the previous song in the current playlist", logger)
     {
         _guildPlayersPool = guildPlayersPool;
     }
@@ -23,13 +22,19 @@ public sealed class GetPlaylistDetailsCommand : SongyCommand
             return;
         }
 
+        if (guildUser.VoiceChannel is null)
+        {
+            Logger.Warning("User is not connected to a voice channel");
+            return;
+        }
+
         if (!_guildPlayersPool.TryGetGuildPlayer(guildUser.Guild.Id, out var player) || player.PlaylistSession is null)
         {
             await socketCommand.RespondAsync("There is no active playlist");
             return;
         }
 
-        var songNames = player.PlaylistSession.Playlist.Songs.Select(s => s.SongName).ToList();
-        await socketCommand.RespondAsync($"Playlist: {player.PlaylistSession.Playlist.Name} \\\\\\ Songs: {string.Join(",", songNames)}");
+        player.PlaylistSession.Previous();
+        await socketCommand.RespondAsync($"Playlist {player.PlaylistSession.Playlist.Name} continued");
     }
 }

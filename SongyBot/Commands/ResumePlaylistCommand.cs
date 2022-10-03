@@ -36,6 +36,12 @@ public sealed class ResumePlaylistCommand : SongyCommand
         }
 
         player.PlaylistSession.SetPaused(false);
+
+        if (!player.HasSongTransmission)
+        {
+            await player.PlayOnChannelAsync(guildUser.VoiceChannel.Id);
+        }
+
         await socketCommand.RespondAsync($"Playlist {player.PlaylistSession.Playlist.Name} continued");
     }
 }

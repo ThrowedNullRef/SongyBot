@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Discord;
 using Discord.WebSocket;
@@ -43,7 +42,7 @@ public sealed class PlaySongCommand : SongyCommand
             return;
         }
 
-        var link = (string)socketCommand.Data.Options.First(o => o.Name == LinkOptionName).Value;
+        var link = socketCommand.ReadOptionValue<string>(LinkOptionName)!;
 
         var song = await SongFactory.CreateSongAsync(link, 0);
         var playlist = new Playlist(null, "SINGLE_SONG", new List<ISong> { song });
@@ -52,10 +51,9 @@ public sealed class PlaySongCommand : SongyCommand
 
         ExecuteBackgroundTask(async () =>
         {
-            await player.ChangePlaylistAsync(playlist);
+            player.ChangePlaylist(playlist);
             await player.PlayOnChannelAsync(guildUser.VoiceChannel.Id);
         });
-        
 
         await socketCommand.RespondAsync("Here is your song");
     }

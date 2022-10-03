@@ -45,7 +45,7 @@ public sealed class RemoveSongFromPlaylistCommand : SongyCommand
             return;
         }
 
-        var positionToRemove = (int)socketCommand.Data.Options.First(o => o.Name == PositionOptionName).Value;
+        var positionToRemove = socketCommand.ReadOptionValue<int>(PositionOptionName);
 
         if (!player.PlaylistSession.Playlist.TryGetSongAtPosition(positionToRemove, out var song))
         {

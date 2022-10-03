@@ -13,34 +13,34 @@ public sealed class GuildPlayer : IAsyncDisposable
 {
     private readonly SocketGuild _guild;
     private readonly ILogger _logger;
+    private readonly ulong _songyUserId;
     private IAudioClient? _audioClient;
-
-    private SongTransmitter? _songTransmitter;
 
     private SocketVoiceChannel? _channel;
 
-    public GuildPlayer(SocketGuild guild, ILogger logger)
+    private SongTransmitter? _songTransmitter;
+
+    public GuildPlayer(ulong songyUserId, SocketGuild guild, ILogger logger)
     {
+        _songyUserId = songyUserId;
         _guild = guild;
         _logger = logger;
     }
 
     public PlaylistSession? PlaylistSession { get; private set; }
 
-    public async ValueTask DisposeAsync()
-    {
-        await ClearSongTransmissionAsync();
+    public bool HasSongTransmission => _songTransmitter is not null;
 
-        if (_audioClient is not null)
-        {
-            _audioClient.Dispose();
-            _audioClient = null;
-        }
+    public ValueTask DisposeAsync()
+    {
+        ClearSongTransmission();
+        ClearChannelConnection();
+        return ValueTask.CompletedTask;
     }
 
-    public async Task ChangePlaylistAsync(Playlist playlist)
+    public void ChangePlaylist(Playlist playlist)
     {
-        await ClearSongTransmissionAsync();
+        ClearSongTransmission();
 
         PlaylistSession = new PlaylistSession(playlist);
         PlaylistSession.OnSongChanged += OnSongChanged;
@@ -49,14 +49,17 @@ public sealed class GuildPlayer : IAsyncDisposable
 
     public async Task PlayOnChannelAsync(ulong voiceChannelId)
     {
-        await ClearSongTransmissionAsync();
+        ClearSongTransmission();
 
         if (PlaylistSession is null)
             throw new InvalidOperationException("no playlist");
 
         var targetChannel = _guild.VoiceChannels.First(vc => vc.Id == voiceChannelId);
-        if (_channel is null || _channel.Id != targetChannel.Id)
+
+        var isBotConnected = _channel is not null && _channel.ConnectedUsers.Any(u => u.Id == _songyUserId);
+        if (!isBotConnected)
         {
+            ClearChannelConnection();
             _channel = targetChannel;
             _audioClient = await targetChannel.ConnectAsync();
         }
@@ -72,34 +75,54 @@ public sealed class GuildPlayer : IAsyncDisposable
         _songTransmitter.IsPaused = isPaused;
     }
 
-    private async void OnSongChanged(ISong song) =>
+    private async void OnSongChanged(PlaylistSession session, ISong song, bool isEndOfPlaylist)
+    {
+        ClearSongTransmission();
+
+        if (!session.IsLooping && isEndOfPlaylist)
+            return;
+
         await PlaySongAsync(song);
+    }
 
     private async Task PlaySongAsync(ISong song)
     {
+        var songTransmitter = new SongTransmitter(
+            () => _audioClient!.CreatePCMStream(AudioApplication.Mixed),
+            song.GetStreamAsync,
+            _logger);
+
         try
         {
-            _songTransmitter = new SongTransmitter(
-                () => _audioClient!.CreatePCMStream(AudioApplication.Mixed),
-                song.GetStreamAsync);
-
-            await _songTransmitter.TransmitAsync();
-            await ClearSongTransmissionAsync();
+            _songTransmitter = songTransmitter;
+            await songTransmitter.TransmitAsync();
             PlaylistSession?.Next();
         }
         catch (Exception e)
         {
             _logger.Error(e, "Error while streaming song");
-            await ClearSongTransmissionAsync();
+        }
+        finally
+        {
+            await songTransmitter.DisposeAsync();
         }
     }
 
-    private async Task ClearSongTransmissionAsync()
+    private void ClearSongTransmission()
     {
         if (_songTransmitter is null)
             return;
 
-        await _songTransmitter.DisposeAsync();
+        _songTransmitter.Cancel();
         _songTransmitter = null;
+    }
+
+    private void ClearChannelConnection()
+    {
+        if (_audioClient is null)
+            return;
+
+        _audioClient.Dispose();
+        _audioClient = null;
     }
 }

@@ -14,6 +14,7 @@ namespace SongyBot.Commands;
 public sealed class AddSongToPlaylistCommand : SongyCommand
 {
     public const string LinkOptionName = "link";
+    public const string PositionOptionName = "position";
 
     private readonly GuildPlayersPool _guildPlayersPool;
     private readonly Func<IAsyncDocumentSession> _createSession;
@@ -29,7 +30,10 @@ public sealed class AddSongToPlaylistCommand : SongyCommand
         new SlashCommandOptionBuilder().WithName(LinkOptionName)
                                        .WithDescription("link to the song (youtube or spotify)")
                                        .WithType(ApplicationCommandOptionType.String)
-                                       .WithRequired(true)
+                                       .WithRequired(true),
+        new SlashCommandOptionBuilder().WithName(PositionOptionName)
+                                       .WithDescription("position of the song")
+                                       .WithType(ApplicationCommandOptionType.Integer)
     };
 
     protected override async Task ExecuteInternalAsync(SocketSlashCommand socketCommand)
@@ -46,13 +50,14 @@ public sealed class AddSongToPlaylistCommand : SongyCommand
             return;
         }
 
-        var link = (string) socketCommand.Data.Options.First(o => o.Name == LinkOptionName).Value;
+        var link = socketCommand.ReadOptionValue<string>(LinkOptionName)!;
+        var position = socketCommand.ReadOptionValue<int?>(PositionOptionName);
 
         var nextSongPos = player.PlaylistSession.Playlist.Songs.Count > 0 
             ? player.PlaylistSession.Playlist.Songs.Max(s => s.Position) + 1 
             : 0;
 
-        var song = await SongFactory.CreateSongAsync(link, nextSongPos);
+        var song = await SongFactory.CreateSongAsync(link, position ?? nextSongPos);
         player.PlaylistSession.Playlist.AddSong(song);
 
         using var session = _createSession();

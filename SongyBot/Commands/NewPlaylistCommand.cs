@@ -13,7 +13,7 @@ namespace SongyBot.Commands;
 
 public sealed class NewPlaylistCommand : SongyCommand
 {
-    public const string NameOption = "name";
+    public const string NameOptionName = "name";
 
     private readonly Func<IAsyncDocumentSession> _createSession;
     private readonly GuildPlayersPool _guildPlayersPool;
@@ -26,7 +26,7 @@ public sealed class NewPlaylistCommand : SongyCommand
 
     public override List<SlashCommandOptionBuilder> Options => new ()
     {
-        new SlashCommandOptionBuilder().WithName(NameOption)
+        new SlashCommandOptionBuilder().WithName(NameOptionName)
                                        .WithDescription("name of the playlist")
                                        .WithType(ApplicationCommandOptionType.String)
                                        .WithRequired(true)
@@ -42,14 +42,14 @@ public sealed class NewPlaylistCommand : SongyCommand
 
         using var session = _createSession();
 
-        var playlistName = (string) socketCommand.Data.Options.First(o => o.Name == NameOption).Value;
+        var playlistName = socketCommand.ReadOptionValue<string>(NameOptionName)!;
 
         var playlist = new Playlist(null, playlistName, new ());
         await session.StoreAsync(playlist);
         await session.SaveChangesAsync();
 
         var player = _guildPlayersPool.GetOrCreateGuildPlayer(guildUser.Guild);
-        await player.ChangePlaylistAsync(playlist);
+        player.ChangePlaylist(playlist);
 
         await socketCommand.RespondAsync($"{playlist.Name} playlist created");
     }

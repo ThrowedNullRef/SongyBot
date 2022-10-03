@@ -21,38 +21,49 @@ public sealed class Playlist
 
     public string Name { get; set; }
 
-    public Action? SongAdded;
-
-    public Action? SongRemoved;
-
     public bool TryGetSongAtPosition(int position, [NotNullWhen(true)] out ISong? song)
     {
-        song = Songs.Count - 1 > position ? null : Songs[position];
+        song = Songs.FirstOrDefault(song => song.Position == position);
         return song is not null;
     }
 
     public void AddSong(ISong song)
     {
-        Songs.Insert(song.Position, song);
-
-        for (var i = song.Position + 1; i > Songs.Count; ++i)
+        if (Songs.Count > 1)
         {
-            ++song.Position;
+            var maxSongPos = Songs.Max(s => s.Position);
+
+            for (var i = song.Position; i <= maxSongPos; ++i)
+            {
+                var currentSong = Songs.FirstOrDefault(s => s.Position == i);
+                if (currentSong is null)
+                    continue;
+
+                ++currentSong.Position;
+            }
         }
 
-        SongAdded?.Invoke();
+        var newSongs = new List<ISong>(Songs) { song };
+        Songs = newSongs.OrderBy(s => s.Position).ToList();
     }
 
     public void RemoveSong(ISong song)
     {
-        if (!Songs.Remove(song))
+        var newSongs = new List<ISong>(Songs);
+        var isSongRemoved = newSongs.Remove(song);
+        Songs = newSongs;
+
+        if (!isSongRemoved || Songs.Count < 1)
             return;
 
-        for (var i = song.Position; i > Songs.Count; ++i)
+        var maxSongPos = Songs.Max(s => s.Position);
+        for (var i = song.Position + 1; i <= maxSongPos; ++i)
         {
-            --song.Position;
-        }
+            var currentSong = Songs.FirstOrDefault(s => s.Position == i);
+            if (currentSong is null)
+                continue;
 
-        SongRemoved?.Invoke();
+            --currentSong.Position;
+        }
     }
 }

@@ -18,9 +18,13 @@ public sealed class PlaylistSession
 
     public bool IsPaused { get; private set; }
 
-    public event Action<ISong>? OnSongChanged;
+    public bool IsLooping { get; private set; }
+
+    public event Action<PlaylistSession, ISong, bool>? OnSongChanged;
 
     public event Action<bool>? OnPausedChanged;
+
+    public event Action<bool>? OnLoopingChanged;
 
     public void Next()
     {
@@ -28,10 +32,14 @@ public sealed class PlaylistSession
             return;
 
         var maxSongPos = Playlist.Songs.Max(s => s.Position);
-        var currentPos = CurrentSongPosition ?? 0;
-        var nextPos = currentPos >= maxSongPos ? 0 : currentPos + 1;
+        var nextPos = CurrentSongPosition is null 
+            ? 0 
+            : CurrentSongPosition.Value >= maxSongPos ? 0 : CurrentSongPosition.Value + 1;
+
+        var isEndOfPlaylist = CurrentSongPosition is not null && nextPos == 0;
+
         CurrentSongPosition = nextPos;
-        OnSongChanged?.Invoke(Playlist.Songs[nextPos]);
+        OnSongChanged?.Invoke(this, Playlist.Songs[nextPos], isEndOfPlaylist);
     }
 
     public void Previous()
@@ -42,7 +50,7 @@ public sealed class PlaylistSession
         var currentIndex = CurrentSongPosition ?? 0;
         var nextIndex = currentIndex == 0 ? Playlist.Songs.Count - 1 : currentIndex - 1;
         CurrentSongPosition = nextIndex;
-        OnSongChanged?.Invoke(Playlist.Songs[nextIndex]);
+        OnSongChanged?.Invoke(this, Playlist.Songs[nextIndex], false);
     }
 
     public void SetPaused(bool isPaused)
@@ -54,6 +62,15 @@ public sealed class PlaylistSession
         OnPausedChanged?.Invoke(isPaused);
     }
 
+    public void SetLooping(bool isLooping)
+    {
+        if (IsLooping == isLooping)
+            return;
+
+        IsLooping = isLooping;
+        OnLoopingChanged?.Invoke(isLooping);
+    }
+
     public bool TryGetCurrentSong([NotNullWhen(true)] out ISong? song)
     {
         if (CurrentSongPosition is not null) 
@@ -61,6 +78,5 @@ public sealed class PlaylistSession
 
         song = null;
         return false;
-
     }
 }

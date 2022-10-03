@@ -47,7 +47,7 @@ public sealed class ChangePlaylistCommand : SongyCommand
             return;
         }
 
-        var playlistName = (string)socketCommand.Data.Options.First(o => o.Name == NameOption).Value;
+        var playlistName = socketCommand.ReadOptionValue<string>(NameOption);
 
         using var session = _createSession();
 
@@ -62,10 +62,10 @@ public sealed class ChangePlaylistCommand : SongyCommand
 
         ExecuteBackgroundTask(async () =>
         {
-            await player.ChangePlaylistAsync(playlist);
+            player.ChangePlaylist(playlist);
             await player.PlayOnChannelAsync(guildUser.VoiceChannel.Id);
         });
 
-        await socketCommand.RespondAsync($"Switched to playlist {playlist.Name}");
+        await socketCommand.RespondAsync($"Switching to playlist {playlistName}");
     }
 }

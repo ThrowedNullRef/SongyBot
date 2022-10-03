@@ -10,31 +10,20 @@ namespace SongyBot.AudioPlaying;
 public sealed class GuildPlayersPool
 {
     private readonly ILogger _logger;
+    private readonly DiscordSocketClient _discordClient;
     private readonly Dictionary<ulong, GuildPlayer> _playersByGuildId = new ();
 
-    public GuildPlayersPool(ILogger logger)
+    public GuildPlayersPool(ILogger logger, DiscordSocketClient discordClient)
     {
         _logger = logger;
-    }
-
-    public async Task PlayOnChannelAsync(SocketVoiceChannel channel, Playlist playlist)
-    {
-        var channelPlayer = GetOrCreateGuildPlayer(channel.Guild);
-        await channelPlayer.ChangePlaylistAsync(playlist);
-
-#pragma warning disable CS4014
-        Task.Run(async () =>
-#pragma warning restore CS4014
-                 {
-                     await channelPlayer.PlayOnChannelAsync(channel.Id);
-                 });
+        _discordClient = discordClient;
     }
 
     public GuildPlayer GetOrCreateGuildPlayer(SocketGuild guild)
     {
         if (!_playersByGuildId.TryGetValue(guild.Id, out var guildPlayer))
         {
-            guildPlayer = new GuildPlayer(guild, _logger);
+            guildPlayer = new GuildPlayer(_discordClient.CurrentUser.Id, guild, _logger);
             _playersByGuildId.Add(guild.Id, guildPlayer);
         }
 

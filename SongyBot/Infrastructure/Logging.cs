@@ -8,6 +8,7 @@ public static class Logging
 {
     public static ILogger CreateLogger() => new LoggerConfiguration().Enrich.FromLogContext()
                                                                      .WriteTo.Console()
+                                                                     .MinimumLevel.Debug()
                                                                      .CreateLogger();
 
     public static void Log(ILogger logger, LogMessage message)

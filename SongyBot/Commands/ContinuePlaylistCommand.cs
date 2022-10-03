@@ -29,13 +29,13 @@ public sealed class ContinuePlaylistCommand : SongyCommand
             return;
         }
 
-        if (!_guildPlayersPool.TryGetGuildPlayer(guildUser.Guild.Id, out var player) || player.Playlist is null)
+        if (!_guildPlayersPool.TryGetGuildPlayer(guildUser.Guild.Id, out var player) || player.PlaylistSession is null)
         {
             await socketCommand.RespondAsync("There is no active playlist");
             return;
         }
 
         await player.PlayOnChannelAsync(guildUser.Guild.Id);
-        await socketCommand.RespondAsync($"Playlist {player.Playlist.Name} continued");
+        await socketCommand.RespondAsync($"Playlist {player.PlaylistSession.Playlist.Name} continued");
     }
 }
