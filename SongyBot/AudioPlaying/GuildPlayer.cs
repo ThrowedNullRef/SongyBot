@@ -55,13 +55,23 @@ public sealed class GuildPlayer : IAsyncDisposable
             throw new InvalidOperationException("no playlist");
 
         var targetChannel = _guild.VoiceChannels.First(vc => vc.Id == voiceChannelId);
+        var isBotConnected = _audioClient is not null && _channel is not null && _channel.ConnectedUsers.Any(u => u.Id == _songyUserId);
 
-        var isBotConnected = _channel is not null && _channel.ConnectedUsers.Any(u => u.Id == _songyUserId);
         if (!isBotConnected)
         {
             ClearChannelConnection();
-            _channel = targetChannel;
-            _audioClient = await targetChannel.ConnectAsync();
+
+            try
+            {
+                _channel = targetChannel;
+                _audioClient = await targetChannel.ConnectAsync();
+            }
+            catch (Exception e)
+            {
+                _logger.Error(e, "Error while connecting to voice channel");
+                ClearChannelConnection();
+                return;
+            }
         }
 
         PlaylistSession.Next();
@@ -96,16 +106,18 @@ public sealed class GuildPlayer : IAsyncDisposable
         {
             _songTransmitter = songTransmitter;
             await songTransmitter.TransmitAsync();
-            PlaylistSession?.Next();
         }
         catch (Exception e)
         {
             _logger.Error(e, "Error while streaming song");
+            return;
         }
         finally
         {
             await songTransmitter.DisposeAsync();
         }
+
+        PlaylistSession?.Next();
     }
 
     private void ClearSongTransmission()
@@ -124,5 +136,6 @@ public sealed class GuildPlayer : IAsyncDisposable
 
         _audioClient.Dispose();
         _audioClient = null;
+        _channel = null;
     }
 }

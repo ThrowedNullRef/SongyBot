@@ -8,7 +8,7 @@ public static class Logging
 {
     public static ILogger CreateLogger() => new LoggerConfiguration().Enrich.FromLogContext()
                                                                      .WriteTo.Console()
-                                                                     .MinimumLevel.Debug()
+                                                                     .MinimumLevel.Information()
                                                                      .CreateLogger();
 
     public static void Log(ILogger logger, LogMessage message)
@@ -19,8 +19,8 @@ public static class Logging
             LogSeverity.Error => LogEventLevel.Error,
             LogSeverity.Warning => LogEventLevel.Warning,
             LogSeverity.Info => LogEventLevel.Information,
-            LogSeverity.Verbose => LogEventLevel.Verbose,
-            LogSeverity.Debug => LogEventLevel.Debug,
+            LogSeverity.Verbose => LogEventLevel.Information,
+            LogSeverity.Debug => LogEventLevel.Information,
             _ => LogEventLevel.Information
         };
 

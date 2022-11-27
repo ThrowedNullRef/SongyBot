@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using Discord;
 using Discord.WebSocket;
+using Newtonsoft.Json;
 using Serilog;
 using SongyBot.Commands;
 using SongyBot.Infrastructure;
@@ -37,12 +38,19 @@ public sealed class Songy : IAsyncDisposable
         _client.Ready += OnClientReady;
         _client.SlashCommandExecuted += OnClientSlashCommandExecuted;
         _client.Log += OnClientLog;
+        _client.UserVoiceStateUpdated += OnUserVoiceStateUpdated;
 
         await _client.LoginAsync(TokenType.Bot, _config.BotToken);
         await _client.StartAsync();
 
         _isRunning = true;
         await Task.Delay(-1);
+    }
+
+    private Task OnUserVoiceStateUpdated(SocketUser user, SocketVoiceState oldState, SocketVoiceState newState)
+    {
+        _logger.Warning($"State Update (User: {user.Username}), Status: {user.Status}");
+        return Task.CompletedTask;
     }
 
     public async Task ShutdownAsync()

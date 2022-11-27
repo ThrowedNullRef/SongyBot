@@ -26,9 +26,16 @@ public abstract class SongyCommand
 
     public async Task ExecuteAsync(SocketSlashCommand socketCommand)
     {
-        Logger.Information($"Executing command {CommandName}...");
-        await ExecuteInternalAsync(socketCommand);
-        Logger.Information($"Executed command {CommandName}");
+        try
+        {
+            Logger.Information($"Running command {CommandName}");
+            await ExecuteInternalAsync(socketCommand);
+        }
+        catch (Exception e)
+        {
+            Logger.Error(e, $"Error while running command {CommandName}");
+        }
+        
     }
 
     protected abstract Task ExecuteInternalAsync(SocketSlashCommand socketCommand);

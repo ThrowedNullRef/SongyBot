@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
+using Discord;
 using Discord.WebSocket;
 using Microsoft.Extensions.DependencyInjection;
 using Raven.Client.Documents;
@@ -26,9 +27,18 @@ public static class Program
     {
         var services = new ServiceCollection();
 
-        var songyConfig = new SongyConfig("MTAyNDc4ODExMDExMTkzMjQzNg.Gc6CSM.V8TLwbbm-Dbe2p7WoCGmJq7i3hIdRwVJKp-A0g");
+        var songyConfig = new SongyConfig("<discord_bot_token>");
 
-        services.AddSingleton<DiscordSocketClient>()
+        var discordConfig = new DiscordSocketConfig
+        {
+            LogLevel = LogSeverity.Debug,
+            GatewayIntents = GatewayIntents.AllUnprivileged,
+            UseInteractionSnowflakeDate = true
+        };
+
+        var discord = new DiscordSocketClient(discordConfig);
+
+        services.AddSingleton(discord)
                 .AddSingleton<Songy>()
                 .AddSingleton(songyConfig)
                 .AddSingleton<CommandsEngine>()
@@ -52,10 +62,7 @@ public static class Program
             Database = "SongyBot"
         }.Initialize();
 
-        services.AddTransient(_ =>
-        {
-            return new Func<IAsyncDocumentSession>(() => store.OpenAsyncSession());
-        });
+        services.AddTransient<Func<IAsyncDocumentSession>>(_ => () => store.OpenAsyncSession());
 
         return services.BuildServiceProvider();
     }
